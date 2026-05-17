@@ -1,9 +1,10 @@
 import axios from "axios";
 
-const API_BASE = "/api";
+const API_BASE =
+  import.meta.env.VITE_API_URL || "";
 
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: `${API_BASE}/api`,
 });
 
 export async function uploadHeadshot(file) {
@@ -70,7 +71,7 @@ export function subscribeToJob(
   },
 ) {
   const eventSource = new EventSource(
-    `${API_BASE}/jobs/${jobId}/stream`,
+    `${API_BASE}/api/jobs/${jobId}/stream`,
   );
 
   eventSource.addEventListener("thumbnail_ready", (event) => {

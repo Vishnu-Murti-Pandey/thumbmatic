@@ -2,6 +2,7 @@
 node_modules/
 venv/
 .env
+.env.production
 __pycache__/
 *.pyc
 
