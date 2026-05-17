@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+venv/
+.env
+__pycache__/
+*.pyc
+
+# build
+dist/
+build/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# mac/windows
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# python
+.pytest_cache/
+.mypy_cache/
+
+# uploads/temp
+tmp/
+temp/
+
+# coverage
+coverage/
+
+# local db
+*.sqlite3
+
+# frontend env
+frontend/.env
+
+# backend env
+backend/.env
