@@ -50,7 +50,7 @@ async def generate_single_thumbnail(thumbnail_id: str, prompt: str, headshot_url
         url = upload_file(
             file_bytes=image_byte,
             file_name=f"{thumbnail_id}.png",
-            folder=f"thumbmail/{job_id}/"
+            folder=f"thumbnail/{job_id}/"
         )
         # DB call save  the url + mark uploaded
         with Session(engine) as session:
