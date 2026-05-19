@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from database import create_tables
 from routes import router
+from auth.routes import auth_router
 
 
 # Why asynccontextmanager? It handles: startup, cleanup, async resources
@@ -28,4 +29,5 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(auth_router)
 logging.basicConfig(level=logging.INFO)

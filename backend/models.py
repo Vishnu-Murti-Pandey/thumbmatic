@@ -44,4 +44,11 @@ class Job(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now)
     
     thumbnails: List[Thumbnail] = Relationship(back_populates="job")
+    user_id: str = Field(foreign_key="user.id")
+
+class User(SQLModel, table=True):
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    email: str = Field(index=True, unique=True, nullable=False)
+    hashed_password: str = Field(nullable=False)
+    created_at: datetime = Field(default_factory=_now)
     

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Sparkles,
@@ -16,9 +17,16 @@ import {
   Download,
   Cpu,
   Activity,
+  LogOut,
 } from "lucide-react";
 
-import { uploadHeadshot, createJob, subscribeToJob, getJob } from "../api";
+import {
+  uploadHeadshot,
+  createJob,
+  subscribeToJob,
+  getJob,
+  userProfileService,
+} from "../services/jobService.js";
 
 const styles = [
   {
@@ -45,6 +53,7 @@ const styles = [
 ];
 
 export default function ThumbmaticUI() {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const eventSourceRef = useRef(null);
   const streamRef = useRef(null);
@@ -59,10 +68,27 @@ export default function ThumbmaticUI() {
 
   const [streamEvents, setStreamEvents] = useState([]);
 
+  const [userData, setUserData] = useState(null);
+
   useEffect(() => {
     return () => {
       eventSourceRef.current?.close();
     };
+  }, []);
+
+  useEffect(() => {
+    async function fetchUserDetails() {
+      try {
+        const data = await userProfileService();
+        setUserData(data);
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.detail || "Failed to fetch user data",
+        );
+      }
+    }
+
+    fetchUserDetails();
   }, []);
 
   useEffect(() => {
@@ -256,10 +282,8 @@ export default function ThumbmaticUI() {
           setLoading(false);
         },
       });
-    } catch (err) {
-      console.error(err);
-
-      toast.error("Something went wrong");
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Something went wrong");
 
       addEvent({
         type: "error",
@@ -269,6 +293,11 @@ export default function ThumbmaticUI() {
 
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
   };
 
   return (
@@ -311,17 +340,10 @@ export default function ThumbmaticUI() {
             </p>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="flex items-center gap-3 self-start">
             <StatCard
-              icon={<Cpu size={18} />}
-              title="AI Engine"
-              value="Online"
-            />
-
-            <StatCard
-              icon={<Activity size={18} />}
-              title="Realtime"
-              value="Streaming"
+              email={userData?.email}
+              name={userData?.email.substring(0, 4)}
             />
           </div>
         </div>
@@ -358,7 +380,9 @@ export default function ThumbmaticUI() {
                       {selectedFile ? selectedFile.name : "Drop Your Image"}
                     </h3>
 
-                    <p className="text-sm text-white/40 mt-2">Only PNG • Max 10MB</p>
+                    <p className="text-sm text-white/40 mt-2">
+                      Only PNG • Max 10MB
+                    </p>
 
                     <button
                       type="button"
@@ -762,20 +786,74 @@ function StyleCard({
   );
 }
 
-function StatCard({ icon, title, value }) {
+function StatCard({ email, name = "User" }) {
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+
+  const [open, setOpen] = useState(false);
+
+  const displayName = email
+    ?.split("@")[0]
+    ?.split(".")
+    ?.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    ?.join(" ");
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
+  };
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl px-5 py-4 min-w-[150px]">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-400/20 flex items-center justify-center text-fuchsia-300">
-          {icon}
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="group relative flex items-center gap-3 rounded-[15px] border border-white/10 bg-white/[0.04] px-3 py-3 backdrop-blur-xl transition-all duration-300 hover:bg-white/[0.07] hover:border-fuchsia-500/30 hover:shadow-[0_10px_40px_rgba(168,85,247,0.15)] cursor-pointer"
+      >
+        <div className="absolute inset-0 rounded-[22px] bg-gradient-to-r from-fuchsia-500/0 via-fuchsia-500/5 to-indigo-500/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-xl font-bold text-white shadow-lg">
+          {name.charAt(0).toUpperCase()}
         </div>
 
-        <div>
-          <p className="text-xs text-white/40">{title}</p>
+        <div className="relative hidden min-w-0 flex-col text-left sm:flex">
+          <span className="truncate text-[15px] font-semibold text-white">
+            {displayName}
+          </span>
 
-          <h3 className="font-semibold mt-1">{value}</h3>
+          {email && (
+            <span className="max-w-[140px] truncate text-[11px] text-white/45 sm:max-w-[180px]">
+              {email}
+            </span>
+          )}
         </div>
-      </div>
+      </button>
+
+      {open && (
+        <button
+          onClick={handleLogout}
+          className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.06] px-3 py-2.5 text-sm font-medium text-red-300 backdrop-blur-xl transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/12 hover:shadow-[0_10px_35px_rgba(239,68,68,0.18)] active:scale-[0.98] sm:justify-start cursor-pointer"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-red-400/20 bg-red-500/10 transition-all duration-300 group-hover:bg-red-500/20">
+            <LogOut size={18} />
+          </div>
+
+          <span className="hidden tracking-wide sm:block">Logout</span>
+        </button>
+      )}
     </div>
   );
 }

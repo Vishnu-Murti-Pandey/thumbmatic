@@ -8,15 +8,16 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from database import get_session
-from models import Thumbnail, Job
+from models import Thumbnail, Job, User
 
 from services.generator import process_job, STYLE_ORDER
 from services.imagekit_service import upload_file, get_variants
+from auth.dependencies import get_current_user
 
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix='/api')
+router = APIRouter(prefix='/api', tags=["Jobs"])
 
 # request response schema
 
@@ -46,7 +47,7 @@ class JobResponse(BaseModel):
     
     
 @router.post('/upload-headshot')
-async def upload_headshot(file: UploadFile = File(...)):
+async def upload_headshot(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     contents = await file.read()
     url = upload_file(
         file_bytes=contents,
@@ -57,14 +58,15 @@ async def upload_headshot(file: UploadFile = File(...)):
     return {"url": url}
 
 @router.post('/jobs', response_model=CreateJobResponse)
-async def createJob(request: CreateJobRequest, session: Session=Depends(get_session)):
+async def createJob(request: CreateJobRequest, session: Session=Depends(get_session), current_user: User = Depends(get_current_user)):
     if request.num_thumbnails < 1 or request.num_thumbnails > 3:
         raise HTTPException(status_code=400, detail="num_thumbnails must be between 1 and 3")
     
     job = Job(
         prompt=request.prompt,
         num_thumbnails=request.num_thumbnails,
-        headshot_url=request.headshot_url   
+        headshot_url=request.headshot_url,
+        user_id=current_user.id
     )
     session.add(job)
     
@@ -80,8 +82,15 @@ async def createJob(request: CreateJobRequest, session: Session=Depends(get_sess
     return CreateJobResponse(job_id=job.id)
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
-def get_job(job_id: str, session: Session = Depends(get_session)):
+def get_job(job_id: str, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     job = session.get(Job, job_id)
+    
+    if job.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to access this job"
+        )
+    
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
