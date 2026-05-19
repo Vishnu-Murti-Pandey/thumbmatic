@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: `${API_BASE}/api`,
 });
 
 api.interceptors.request.use(
@@ -57,7 +57,7 @@ export function subscribeToJob(
   jobId,
   { onThumbnailReady, onThumbnailFailed, onJobComplete, onError },
 ) {
-  const eventSource = new EventSource(`${API_BASE}/jobs/${jobId}/stream`);
+  const eventSource = new EventSource(`${API_BASE}/api/jobs/${jobId}/stream`);
 
   eventSource.addEventListener("thumbnail_ready", (event) => {
     const data = JSON.parse(event.data);
